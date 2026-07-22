@@ -11,9 +11,9 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.image import Image as KivyImage
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.filechooser import FileChooserIconView
-from kivy.uix.popup import Popup
 from kivy.core.window import Window
+from kivy.clock import Clock
+from plyer import filechooser
 
 Window.clearcolor = (0.07, 0.07, 0.07, 1)
 
@@ -29,10 +29,10 @@ class ExifAnalyzerApp(App):
         main_layout.add_widget(title_label)
         
         select_btn = Button(
-            text="📁 Galeriden / Hafızadan Fotoğraf Seç", 
+            text="📸 Galeriden Fotoğraf Seç", 
             size_hint_y=None, height=50, background_color=(0.13, 0.59, 0.95, 1), font_size='16sp'
         )
-        select_btn.bind(on_press=self.dosya_secici_ac)
+        select_btn.bind(on_press=self.galeri_ac)
         main_layout.add_widget(select_btn)
         
         self.img_preview = KivyImage(size_hint_y=0.35, allow_stretch=True, keep_ratio=True)
@@ -50,35 +50,27 @@ class ExifAnalyzerApp(App):
         
         return main_layout
 
-    def dosya_secici_ac(self, instance):
-        content = BoxLayout(orientation='vertical')
-        filechooser = FileChooserIconView(path='/sdcard/DCIM' if os.path.exists('/sdcard/DCIM') else '/')
-        content.add_widget(filechooser)
-        
-        btn_layout = BoxLayout(size_hint_y=None, height=45, spacing=10)
-        sec_btn = Button(text="Tamam", background_color=(0.3, 0.85, 0.4, 1))
-        iptal_btn = Button(text="İptal", background_color=(0.9, 0.2, 0.2, 1))
-        btn_layout.add_widget(sec_btn)
-        btn_layout.add_widget(iptal_btn)
-        content.add_widget(btn_layout)
-        
-        popup = Popup(title="Fotoğraf Seçin", content=content, size_hint=(0.95, 0.95), auto_dismiss=False)
-        
-        def secimi_onayla(inst):
-            if filechooser.selection:
-                dosya_yolu = filechooser.selection[0]
-                popup.dismiss()
-                self.analiz_et(dosya_yolu)
-                
-        sec_btn.bind(on_press=secimi_onayla)
-        iptal_btn.bind(on_press=popup.dismiss)
-        popup.open()
+    def galeri_ac(self, instance):
+        """Android yerel galerisini çağırır."""
+        try:
+            filechooser.open_file(
+                on_selection=self.dosya_secildi_cb,
+                filters=[("Görseller", "*.jpg", "*.jpeg", "*.png")]
+            )
+        except Exception as e:
+            self.result_label.text = f"[color=ff5252]Galeri açılamadı: {str(e)}[/color]"
+
+    def dosya_secildi_cb(self, selection):
+        """Galeriden dosya seçildiğinde arka plandan UI iş parçacığına aktarır."""
+        if not selection:
+            return
+        Clock.schedule_once(lambda dt: self.analiz_et(selection[0]), 0)
 
     def tarih_formatla(self, tarih_str):
         if not tarih_str or tarih_str == "Bilinmiyor": return "Bilinmiyor"
         try:
             dt = datetime.strptime(str(tarih_str).strip(), "%Y:%m:%d %H:%M:%S")
-            aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+            aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylul", "Ekim", "Kasım", "Aralık"]
             return f"{dt.day} {aylar[dt.month - 1]} {dt.year} - {dt.strftime('%H:%M:%S')}"
         except Exception:
             return str(tarih_str).replace(":", ".", 2)
@@ -165,4 +157,4 @@ class ExifAnalyzerApp(App):
 
 if __name__ == "__main__":
     ExifAnalyzerApp().run()
-  
+    
