@@ -26,6 +26,8 @@ jobs:
 
     - name: Build with Buildozer
       run: |
+        export ANDROID_NDK=""
+        export ANDROID_NDK_ROOT=""
         export ANDROID_NDK_HOME=""
         export ANDROID_NDK_LATEST_HOME=""
         buildozer -v android debug
